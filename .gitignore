@@ -1,0 +1,31 @@
+# Environment credentials (DO NOT commit)
+.env
+.env.backup
+.env.local
+
+# Bulky binaries and external tools
+bin/
+*.exe
+
+# Storage caches, temporary archives and tunnel states
+storage/emails/*
+!storage/emails/.gitkeep
+storage/sms/*
+!storage/sms/.gitkeep
+storage/tunnel-url.txt
+*.log
+
+# User uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Temporary debug scripts & experimental files
+scratch/
+canva_dom.html
+wooow.html
+
+# OS and IDE caches
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

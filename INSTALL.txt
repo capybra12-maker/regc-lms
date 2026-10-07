@@ -1,0 +1,85 @@
+REGC TRUCKING SERVICES - OPERATIONS INSTALLATION
+============================================
+
+REQUIREMENTS
+------------
+- XAMPP with PHP 8+
+- MySQL / MariaDB
+- Apache
+- Internet connection is recommended so Bootstrap and Bootstrap Icons CDN can load.
+
+INSTALLATION
+------------
+1. Extract the folder "regc-lms" into:
+
+   C:\xampp\htdocs\
+
+2. Start Apache and MySQL in XAMPP.
+
+3. Open phpMyAdmin:
+
+   http://localhost/phpmyadmin
+
+4. For a NEW installation, click "Import" and import:
+
+   regc-lms/database/schema.sql
+
+   Existing Phase 1 installations: keep your database. No reimport is needed.
+
+5. Open Command Prompt in the regc-lms folder and run this command once:
+
+   C:\xampp\php\php.exe database\seed.php
+
+6. After the admin is created, login at:
+
+   http://localhost/regc-lms/
+
+LOGIN
+-----
+Email:
+admin@regc.local
+
+Password:
+Admin@12345
+
+IMPORTANT
+---------
+Open My account > Change password after signing in and replace the default password before deploying the system.
+The seed and diagnostic scripts can only run from the command line.
+
+CURRENTLY INCLUDES
+--------------------------
+- Secure Login
+- Logout
+- Administrator role
+- Secure PHP sessions
+- CSRF protection
+- password_hash/password_verify
+- PDO prepared statements
+- Activity logging
+- Responsive navy/gold dashboard
+- Real database dashboard counters
+- Customer, truck, and driver management with search and pagination
+- Shipment creation with automatic tracking numbers
+- Truck capacity and assignment availability checks
+- Shipment assignment, reassignment, and delivery status updates
+- Internal tracking lookup with a full update history
+- Database structure for:
+    users
+    customers
+    drivers
+    trucks
+    shipments
+    shipment_status_history
+    delivery_schedules
+    proof_of_delivery
+    system_logs
+
+GETTING STARTED
+---------------
+Sign in as administrator, then add Customers, Trucks, and Drivers.
+Create a Shipment and assign an available truck and driver together.
+Advance delivery status from the shipment details page.
+Use Tracking to look up its generated tracking number.
+
+See README.md for the workflow, restrictions, and test commands.
