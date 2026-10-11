@@ -56,6 +56,9 @@ class SettingsController
         $mailEnc      = trim((string) ($_POST['mail_encryption'] ?? 'tls'));
         $mailUser     = trim((string) ($_POST['mail_username'] ?? ''));
         $mailPass     = trim((string) ($_POST['mail_password'] ?? ''));
+        if (stripos($mailHost, 'gmail.com') !== false && $mailPass !== '') {
+            $mailPass = str_replace(' ', '', $mailPass);
+        }
         $mailFrom     = trim((string) ($_POST['mail_from'] ?? ''));
         $mailFromName = trim((string) ($_POST['mail_from_name'] ?? ''));
 

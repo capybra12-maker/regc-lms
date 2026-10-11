@@ -26,6 +26,9 @@ class Mailer
         $encryption = trim($settings['mail_encryption'] ?? (defined('MAIL_ENCRYPTION') ? MAIL_ENCRYPTION : 'tls'));
         $username   = trim($settings['mail_username'] ?? (defined('MAIL_USERNAME') ? MAIL_USERNAME : ''));
         $password   = trim($settings['mail_password'] ?? (defined('MAIL_PASSWORD') ? MAIL_PASSWORD : ''));
+        if (stripos($host, 'gmail.com') !== false) {
+            $password = str_replace(' ', '', $password);
+        }
         $from       = trim($settings['mail_from'] ?? (defined('MAIL_FROM') ? MAIL_FROM : ''));
         $fromName   = trim($settings['mail_from_name'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'REGC Fleet Management'));
 

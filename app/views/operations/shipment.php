@@ -22,9 +22,6 @@ $isAdmin = hasRole('administrator');
             <button type="button" class="btn btn-warning text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#emailCustomerModal" title="Send tracking email to the customer">
                 <i class="bi bi-envelope-at-fill"></i> Email Customer
             </button>
-            <button type="button" class="btn btn-success text-white fw-bold" data-bs-toggle="modal" data-bs-target="#smsCustomerModal" title="Send tracking number via text message (SMS)">
-                <i class="bi bi-phone-fill"></i> SMS Customer
-            </button>
             <a class="btn btn-outline-secondary" href="index.php?route=shipments&amp;action=email-preview&amp;id=<?= (int) $shipment['id']; ?>" target="_blank" title="Preview what the customer receives">
                 <i class="bi bi-eye"></i> Preview Email
             </a>
@@ -88,7 +85,6 @@ $isAdmin = hasRole('administrator');
     $emailBodyText  = "Dear {$customerPerson},\n\nYour cargo shipment has been registered in our logistics dispatch system.\n\nTracking Code: {$trackingNum}\nCargo: {$shipment['cargo_type']}\nOrigin: {$shipment['pickup_location']}\nDestination: {$shipment['destination']}\n\nYou can track your cargo live 24/7 at:\n{$trackingUrl}\n\nThank you for choosing REGC Fleet Management!";
 
     $mailtoUrl      = 'mailto:' . rawurlencode($customerEmail) . '?subject=' . rawurlencode($emailSubject) . '&body=' . rawurlencode($emailBodyText);
-    $smsMsg         = "Hi " . explode(' ', trim($customerPerson))[0] . "! Your REGC cargo (" . $trackingNum . ") is dispatched. Track live at " . $trackingUrl;
 
     require_once __DIR__ . '/../../services/Mailer.php';
     $smtpInfo       = Mailer::getSmtpConfig();
@@ -189,62 +185,6 @@ $isAdmin = hasRole('administrator');
     </div>
 </div>
 
-<!-- SMS Customer Modal -->
-<div class="modal fade" id="smsCustomerModal" tabindex="-1" aria-labelledby="smsCustomerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold" id="smsCustomerModalLabel">
-                    <i class="bi bi-chat-text-fill me-2"></i>Send SMS to Customer
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="mb-3">
-                    <label class="form-label text-muted small fw-bold text-uppercase">Recipient</label>
-                    <div class="fw-bold fs-6 text-dark"><?= e($customerPerson); ?><?= $customerCompany ? ' <span class="text-muted fw-normal">(' . e($customerCompany) . ')</span>' : ''; ?></div>
-                    <div class="text-primary fw-semibold mt-1">
-                        <i class="bi bi-telephone-fill me-1"></i><?= $customerPhone ? e($customerPhone) : '<span class="text-danger">No phone number recorded</span>'; ?>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-muted small fw-bold text-uppercase">Tracking Number</label>
-                    <div class="p-2 bg-light border rounded font-monospace fw-bold fs-6 text-dark">
-                        <?= e($trackingNum); ?>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-muted small fw-bold text-uppercase">Message Preview</label>
-                    <textarea class="form-control font-monospace" rows="3" readonly style="font-size: 13px; background-color: #f8fafc;"><?= e($smsMsg); ?></textarea>
-                    <div class="d-flex justify-content-between mt-1">
-                        <small class="text-muted"><?= mb_strlen($smsMsg); ?> characters</small>
-                        <small class="text-success"><i class="bi bi-check-circle"></i> Standard SMS</small>
-                    </div>
-                </div>
-
-                <?php if (!$customerPhone): ?>
-                    <div class="alert alert-warning py-2 small mb-0">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        Please add a contact number to this customer's record to dispatch SMS alerts.
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <?php if ($customerPhone): ?>
-                    <a href="sms:<?= e(preg_replace('/[^0-9+]/', '', $customerPhone)); ?>?body=<?= e(rawurlencode($smsMsg)); ?>" class="btn btn-outline-success">
-                        <i class="bi bi-phone"></i> Open in Phone App
-                    </a>
-                    <a href="index.php?route=shipments&amp;action=sms-tracking&amp;id=<?= (int) $shipment['id']; ?>" class="btn btn-success fw-bold">
-                        <i class="bi bi-send-fill me-1"></i> Send Server SMS
-                    </a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</div>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>
