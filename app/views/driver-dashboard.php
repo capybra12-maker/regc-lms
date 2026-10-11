@@ -170,8 +170,12 @@ require __DIR__ . '/partials/header.php';
     function sendPosition(lat, lng) {
         fetch('index.php?route=driver-gps', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-            body: 'csrf_token=' + encodeURIComponent(csrf) + '&lat=' + lat + '&lng=' + lng
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': 'regc-gps-live' },
+            body: JSON.stringify({
+                lat: parseFloat(lat),
+                lng: parseFloat(lng),
+                api_key: 'regc-gps-live'
+            })
         }).then(r => r.json()).then(data => {
             if (data.ok && badge) {
                 badge.className = 'badge bg-success align-self-center';

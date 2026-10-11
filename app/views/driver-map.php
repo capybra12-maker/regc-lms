@@ -309,39 +309,22 @@ X-API-Key: regc-gps-live
             <div class="modal-body p-4">
 
                 <?php
-                $tunnelFile = __DIR__ . '/../../storage/tunnel-url.txt';
-                $tunnelBase = file_exists($tunnelFile) ? ltrim(trim((string) file_get_contents($tunnelFile)), "\xEF\xBB\xBF\r\n ") : '';
-                $cellularUrl = $tunnelBase ? ($tunnelBase . '/regc-lms/index.php?route=mobile-gps') : '';
-                $localLanUrl = 'https://192.168.1.9/regc-lms/index.php?route=mobile-gps';
-
-                $activeUrl = $cellularUrl ?: $localLanUrl;
-                $activeQr = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($activeUrl);
+                // Use the live domain — no tunnel needed on production
+                $mobileGpsUrl = rtrim(APP_URL, '/') . '/index.php?route=mobile-gps';
+                $activeQr = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($mobileGpsUrl);
                 ?>
 
-                <!-- Gateway Status Alert -->
-                <?php if ($tunnelBase): ?>
-                    <div class="alert alert-success d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 py-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill fs-4 text-success"></i>
-                            <div>
-                                <strong class="d-block">Cellular Mobile Data Gateway Active!</strong>
-                                <span class="small text-muted">Drivers can be anywhere on the road using their Globe/Smart/DITO mobile data or load.</span>
-                            </div>
+                <!-- Live Domain Status Alert -->
+                <div class="alert alert-success d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                        <div>
+                            <strong class="d-block">Live Domain — Accessible Anywhere!</strong>
+                            <span class="small text-muted">Drivers can use this link on any network: Globe, Smart, DITO, Wi-Fi.</span>
                         </div>
-                        <span class="badge bg-success font-monospace px-2 py-1">HTTPS Connected</span>
                     </div>
-                <?php else: ?>
-                    <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 py-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-info-circle-fill fs-4 text-warning"></i>
-                            <div>
-                                <strong class="d-block">Running in Local Wi-Fi Mode</strong>
-                                <span class="small text-muted">To enable drivers on the road with mobile cellular data/load, run <code>start-driver-gps-tunnel.bat</code>.</span>
-                            </div>
-                        </div>
-                        <span class="badge bg-warning text-dark font-monospace px-2 py-1">Local Network</span>
-                    </div>
-                <?php endif; ?>
+                    <span class="badge bg-success font-monospace px-2 py-1">🔒 HTTPS Secured</span>
+                </div>
 
                 <div class="row g-4 align-items-center">
                     <!-- QR Code Column -->
@@ -365,8 +348,8 @@ X-API-Key: regc-gps-live
                                 <?php endif; ?>
                             </label>
                             <div class="input-group">
-                                <input type="text" class="form-control form-control-sm font-monospace" value="<?= e($activeUrl); ?>" id="cp-cellular-input" readonly>
-                                <button class="btn btn-outline-success btn-sm" type="button" onclick="navigator.clipboard.writeText(document.getElementById('cp-cellular-input').value); alert('Cellular link copied! Send to driver via SMS, Messenger, or Viber.');">
+                                <input type="text" class="form-control form-control-sm font-monospace" value="<?= e($mobileGpsUrl); ?>" id="cp-cellular-input" readonly>
+                                <button class="btn btn-outline-success btn-sm" type="button" onclick="navigator.clipboard.writeText(document.getElementById('cp-cellular-input').value); alert('Link copied! Send to driver via SMS, Messenger, or Viber.');">
                                     <i class="bi bi-clipboard me-1"></i> Copy
                                 </button>
                             </div>

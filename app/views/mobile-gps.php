@@ -575,25 +575,55 @@
         statusText.innerHTML = '<span class="text-success"><i class="bi bi-broadcast me-1"></i> Live Satellite Lock Active &middot; Telematics Transmitting</span>';
     }
 
+    var gpsRetryCount = 0;
+
     function onGpsError(err) {
-        var msg = 'GPS Error: ' + err.message;
-        if (err.code === 1) {
-            msg = 'Location permission denied. Please allow location access in your browser settings.';
+        if (err.code === 3 && isTracking) {
+            // TIMEOUT — retry automatically with relaxed accuracy
+            gpsRetryCount++;
+            statusText.innerHTML = '<span class="text-warning"><i class="bi bi-arrow-clockwise me-1"></i> GPS timeout — retrying... (attempt ' + gpsRetryCount + ')</span>';
+            connPill.className = 'net-badge bg-warning text-dark';
+            connPill.textContent = 'Retrying...';
+
+            // Clear old watch and restart with more relaxed settings
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            setTimeout(function() {
+                if (isTracking) {
+                    watchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, {
+                        enableHighAccuracy: gpsRetryCount < 3, // try low accuracy after 3 failures
+                        maximumAge: 30000,  // accept position up to 30s old
+                        timeout: 30000      // wait up to 30s
+                    });
+                }
+            }, 2000);
+            return;
         }
-        statusText.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i> ' + msg + '</span>';
-        connPill.className = 'net-badge bg-danger';
-        connPill.textContent = 'GPS Error';
+
+        // Permission denied
+        if (err.code === 1) {
+            statusText.innerHTML = '<span class="text-danger"><i class="bi bi-geo-slash me-1"></i> Location permission denied. Open browser settings → allow location for this site.</span>';
+            connPill.className = 'net-badge bg-danger';
+            connPill.textContent = 'Denied';
+        } else {
+            statusText.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i> GPS unavailable: ' + err.message + '</span>';
+            connPill.className = 'net-badge bg-warning text-dark';
+            connPill.textContent = 'GPS Error';
+        }
         vibrate([100, 100, 100]);
     }
 
     function startTracking() {
         isTracking = true;
+        gpsRetryCount = 0;
         toggleBtn.classList.add('active');
         radarContainer.classList.add('broadcasting');
         btnLabel.textContent = 'STOP GPS';
         connPill.className = 'net-badge bg-success';
         connPill.textContent = 'Broadcasting';
-        statusText.textContent = 'Acquiring high-accuracy satellite lock...';
+        statusText.textContent = 'Acquiring satellite lock... (move near a window for better signal)';
 
         playBeep(920, 'sine', 0.2);
         vibrate([80]);
@@ -602,8 +632,8 @@
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, {
                 enableHighAccuracy: true,
-                maximumAge: 1000,
-                timeout: 15000
+                maximumAge: 30000,   // accept cached position up to 30s old for faster first fix
+                timeout: 30000       // wait up to 30 seconds for a fix
             });
         } else {
             statusText.textContent = 'Geolocation not supported by this browser. Use Simulate Step button.';

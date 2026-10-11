@@ -197,8 +197,8 @@ class DriverController
             ORDER BY d.full_name
         ")->fetchAll();
 
-        $tunnelUrlFile = __DIR__ . '/../../storage/tunnel-url.txt';
-        $publicTunnelUrl = file_exists($tunnelUrlFile) ? ltrim(trim((string) file_get_contents($tunnelUrlFile)), "\xEF\xBB\xBF\r\n ") : '';
+        // Use the live APP_URL as the public GPS link (tunnel no longer needed)
+        $publicTunnelUrl = defined('APP_URL') && APP_URL ? APP_URL : '';
 
         $module = 'driver';
         $mapsKey = defined('GOOGLE_MAPS_API_KEY') ? GOOGLE_MAPS_API_KEY : '';
@@ -236,9 +236,8 @@ class DriverController
             $activeShipment = $sStmt->fetch() ?: null;
         }
 
-        // Detect public Cloudflare tunnel URL if available
-        $tunnelUrlFile = __DIR__ . '/../../storage/tunnel-url.txt';
-        $publicTunnelUrl = file_exists($tunnelUrlFile) ? ltrim(trim((string) file_get_contents($tunnelUrlFile)), "\xEF\xBB\xBF\r\n ") : '';
+        // Use the live APP_URL as the public GPS link (tunnel no longer needed)
+        $publicTunnelUrl = defined('APP_URL') && APP_URL ? APP_URL : '';
 
         $serverIp = '192.168.1.9';
         require __DIR__ . '/../views/mobile-gps.php';

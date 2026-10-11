@@ -8,11 +8,11 @@ function db(): PDO
         return $pdo;
     }
 
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3306';
-    $database = getenv('DB_DATABASE') ?: 'regc_lms';
-    $username = getenv('DB_USERNAME') ?: 'root';
-    $password = getenv('DB_PASSWORD') ?: '';
+    $host     = env('DB_HOST',     '127.0.0.1');
+    $port     = env('DB_PORT',     '3306');
+    $database = env('DB_DATABASE', 'regc_lms');
+    $username = env('DB_USERNAME', 'root');
+    $password = env('DB_PASSWORD', '');
 
     $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
 

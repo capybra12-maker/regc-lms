@@ -51,15 +51,46 @@ class SettingsController
             exit;
         }
 
-        Settings::setMany([
-            'company_name' => $companyName,
-            'company_email' => $companyEmail,
-            'company_phone' => $companyPhone,
-            'company_address' => $companyAddress,
-            'company_tagline' => $companyTagline,
+        $mailHost     = trim((string) ($_POST['mail_host'] ?? ''));
+        $mailPort     = trim((string) ($_POST['mail_port'] ?? '587'));
+        $mailEnc      = trim((string) ($_POST['mail_encryption'] ?? 'tls'));
+        $mailUser     = trim((string) ($_POST['mail_username'] ?? ''));
+        $mailPass     = trim((string) ($_POST['mail_password'] ?? ''));
+        $mailFrom     = trim((string) ($_POST['mail_from'] ?? ''));
+        $mailFromName = trim((string) ($_POST['mail_from_name'] ?? ''));
+
+        $smsApiKey    = trim((string) ($_POST['sms_api_key'] ?? ''));
+        $smsSender    = trim((string) ($_POST['sms_sender_name'] ?? ''));
+
+        $settingsData = [
+            'company_name'         => $companyName,
+            'company_email'        => $companyEmail,
+            'company_phone'        => $companyPhone,
+            'company_address'      => $companyAddress,
+            'company_tagline'      => $companyTagline,
             'fuel_baseline_liters' => (string) ($fuelBaseline ?: 15),
             'fuel_price_per_liter' => (string) ($fuelPrice ?: 65.00),
-        ]);
+            'mail_host'            => $mailHost,
+            'mail_port'            => $mailPort,
+            'mail_encryption'      => $mailEnc,
+            'mail_username'        => $mailUser,
+            'mail_from'            => $mailFrom,
+            'mail_from_name'       => $mailFromName,
+        ];
+
+        // Only update mail password if a new one was entered (preserves existing password)
+        if ($mailPass !== '') {
+            $settingsData['mail_password'] = $mailPass;
+        }
+
+        if (isset($_POST['sms_api_key'])) {
+            $settingsData['sms_api_key'] = $smsApiKey;
+        }
+        if (isset($_POST['sms_sender_name'])) {
+            $settingsData['sms_sender_name'] = $smsSender;
+        }
+
+        Settings::setMany($settingsData);
 
         $_SESSION['notice'] = 'System settings updated successfully.';
         if ($this->isModalRequest()) {

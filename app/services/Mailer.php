@@ -5,6 +5,7 @@ use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception as MailerException;
 
 require_once __DIR__ . '/../models/Operations.php';
+require_once __DIR__ . '/../models/Settings.php';
 require_once __DIR__ . '/PHPMailer/Exception.php';
 require_once __DIR__ . '/PHPMailer/PHPMailer.php';
 require_once __DIR__ . '/PHPMailer/SMTP.php';
@@ -12,14 +13,46 @@ require_once __DIR__ . '/PHPMailer/SMTP.php';
 class Mailer
 {
     /**
+     * Retrieve SMTP configuration, preferring database settings and falling back to .env constants.
+     *
+     * @return array{host: string, port: int, encryption: string, username: string, password: string, from: string, from_name: string, is_configured: bool}
+     */
+    public static function getSmtpConfig(): array
+    {
+        $settings = class_exists('Settings') ? Settings::all() : [];
+
+        $host       = trim($settings['mail_host'] ?? (defined('MAIL_HOST') ? MAIL_HOST : ''));
+        $port       = (int) ($settings['mail_port'] ?? (defined('MAIL_PORT') ? MAIL_PORT : 587));
+        $encryption = trim($settings['mail_encryption'] ?? (defined('MAIL_ENCRYPTION') ? MAIL_ENCRYPTION : 'tls'));
+        $username   = trim($settings['mail_username'] ?? (defined('MAIL_USERNAME') ? MAIL_USERNAME : ''));
+        $password   = trim($settings['mail_password'] ?? (defined('MAIL_PASSWORD') ? MAIL_PASSWORD : ''));
+        $from       = trim($settings['mail_from'] ?? (defined('MAIL_FROM') ? MAIL_FROM : ''));
+        $fromName   = trim($settings['mail_from_name'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'REGC Fleet Management'));
+
+        $dummyUsers = ['your-email@gmail.com', 'your-gmail@gmail.com', 'you@gmail.com', 'yourname@gmail.com', ''];
+        $dummyPass  = ['your-app-password', 'your-app-password-here', 'your-password', ''];
+
+        $isConfigured = !empty($host) && !empty($username) && !empty($password)
+            && !in_array(strtolower($username), $dummyUsers, true)
+            && !in_array(strtolower($password), $dummyPass, true);
+
+        return [
+            'host'          => $host ?: 'smtp.gmail.com',
+            'port'          => $port ?: 587,
+            'encryption'    => strtolower($encryption) === 'ssl' ? 'ssl' : 'tls',
+            'username'      => $username,
+            'password'      => $password,
+            'from'          => $from ?: $username,
+            'from_name'     => $fromName ?: 'REGC Fleet Management',
+            'is_configured' => $isConfigured,
+        ];
+    }
+
+    /**
      * Send tracking number and delivery details email to the customer.
      *
-     * Configure SMTP in .env:
-     *   MAIL_HOST, MAIL_PORT, MAIL_ENCRYPTION, MAIL_USERNAME, MAIL_PASSWORD,
-     *   MAIL_FROM, MAIL_FROM_NAME
-     *
      * @param int $shipmentId
-     * @return array{ok: bool, message: string, recipient?: string}
+     * @return array{ok: bool, message: string, recipient?: string, tracking_number?: string, preview_file?: string}
      */
     public static function sendTrackingEmail(int $shipmentId): array
     {
@@ -47,7 +80,7 @@ class Mailer
         $subject        = "Your Cargo Tracking Code: {$trackingNumber} — REGC Fleet Management";
         $htmlBody       = self::buildTrackingEmailHtml($shipment, $customer, $trackingNumber);
 
-        // ── Archive copy (always) ──────────────────────────────────────
+        // ── Archive copy (always saved locally) ─────────────────────────
         $storageDir = __DIR__ . '/../../storage/emails';
         if (!is_dir($storageDir)) {
             @mkdir($storageDir, 0777, true);
@@ -57,34 +90,43 @@ class Mailer
         @file_put_contents($archiveFile, $htmlBody);
 
         // ── Send via SMTP / PHPMailer ──────────────────────────────────
-        $smtpConfigured = defined('MAIL_HOST') && MAIL_HOST !== '' && MAIL_USERNAME !== '';
+        $config = self::getSmtpConfig();
 
-        if ($smtpConfigured) {
-            $mail = new PHPMailer(true); // true = exceptions enabled
+        if ($config['is_configured']) {
+            $mail = new PHPMailer(true);
 
             try {
                 // Server settings
                 $mail->isSMTP();
-                $mail->Host        = MAIL_HOST;
+                $mail->Host        = $config['host'];
                 $mail->SMTPAuth    = true;
-                $mail->Username    = MAIL_USERNAME;
-                $mail->Password    = MAIL_PASSWORD;
-                $mail->Port        = MAIL_PORT;
+                $mail->Username    = $config['username'];
+                $mail->Password    = $config['password'];
+                $mail->Port        = $config['port'];
+                $mail->Timeout     = 12;
+
+                // SMTPOptions to avoid SSL peer verification failures on shared/cloud hosts
+                $mail->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer'       => false,
+                        'verify_peer_name'  => false,
+                        'allow_self_signed' => true,
+                    ],
+                ];
 
                 // TLS / SSL
-                $enc = strtolower(MAIL_ENCRYPTION);
-                if ($enc === 'ssl') {
+                if ($config['encryption'] === 'ssl') {
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                    if (MAIL_PORT === 587) {
-                        $mail->Port = 465; // standard SSL port
+                    if ($config['port'] === 587) {
+                        $mail->Port = 465;
                     }
                 } else {
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 }
 
                 // Recipients
-                $fromAddress = MAIL_FROM ?: MAIL_USERNAME;
-                $fromName    = MAIL_FROM_NAME ?: 'REGC Fleet Management';
+                $fromAddress = $config['from'] ?: $config['username'];
+                $fromName    = $config['from_name'] ?: 'REGC Fleet Management';
                 $mail->setFrom($fromAddress, $fromName);
                 $mail->addAddress($to, $recipientName);
                 $mail->addReplyTo($fromAddress, $fromName);
@@ -95,24 +137,23 @@ class Mailer
                 $mail->Subject = $subject;
                 $mail->Body    = $htmlBody;
                 $mail->AltBody = "Your tracking code is: {$trackingNumber}\n\nTrack your cargo at: "
-                    . (defined('APP_URL') ? APP_URL : 'http://localhost/regc-lms')
+                    . (defined('APP_URL') && APP_URL ? APP_URL : 'http://localhost/regc-lms')
                     . "/index.php?route=tracking&number=" . urlencode($trackingNumber);
 
                 $mail->send();
                 $delivered = true;
-                $deliveryMsg = "Email sent via SMTP to {$to}.";
+                $deliveryMsg = "Email delivered via SMTP to {$to}.";
 
-            } catch (MailerException $e) {
+            } catch (\Exception $e) {
                 $delivered    = false;
-                $deliveryMsg  = 'SMTP error: ' . $mail->ErrorInfo;
-                // Log the SMTP error
+                $deliveryMsg  = 'SMTP error: ' . ($mail->ErrorInfo ?: $e->getMessage());
                 error_log("[REGC Mailer] SMTP failed for shipment #{$shipmentId}: " . $mail->ErrorInfo);
             }
         } else {
-            // No SMTP configured — archive-only mode
+            // No SMTP configured or dummy credentials
             $delivered   = false;
-            $deliveryMsg = 'SMTP not configured. Email archived locally only. '
-                . 'Set MAIL_HOST / MAIL_USERNAME / MAIL_PASSWORD in .env to enable real delivery.';
+            $deliveryMsg = 'SMTP not configured. Email archived to storage/emails. '
+                . 'Go to System Settings to configure your Gmail or SMTP credentials.';
         }
 
         // ── Audit log ─────────────────────────────────────────────────
@@ -136,20 +177,103 @@ class Mailer
 
         if ($delivered) {
             return [
-                'ok'             => true,
-                'message'        => "✅ Tracking code {$trackingNumber} emailed to {$to}.",
-                'recipient'      => $to,
+                'ok'              => true,
+                'message'         => "✅ Tracking code {$trackingNumber} emailed to {$to}.",
+                'recipient'       => $to,
                 'tracking_number' => $trackingNumber,
-                'preview_file'   => $archiveFile,
+                'preview_file'    => $archiveFile,
             ];
         } else {
             return [
-                'ok'             => false,
-                'message'        => "⚠ Could not send email: {$deliveryMsg} — "
-                    . "Preview saved: storage/emails/{$safeTracking}.html",
-                'recipient'      => $to,
+                'ok'              => false,
+                'message'         => "⚠ Could not send live email: {$deliveryMsg} — You can use 'Open in Email App' to send directly, or preview at storage/emails/{$safeTracking}.html",
+                'recipient'       => $to,
                 'tracking_number' => $trackingNumber,
-                'preview_file'   => $archiveFile,
+                'preview_file'    => $archiveFile,
+            ];
+        }
+    }
+
+    /**
+     * Send a test email to verify SMTP credentials and return diagnostic information.
+     *
+     * @param string $toEmail
+     * @return array{ok: bool, message: string}
+     */
+    public static function testSmtp(string $toEmail): array
+    {
+        if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'message' => 'Please provide a valid recipient email address.'];
+        }
+
+        $config = self::getSmtpConfig();
+        if (!$config['is_configured']) {
+            return [
+                'ok' => false,
+                'message' => 'SMTP is not configured with valid credentials. Please enter your Gmail address and 16-character App Password in Settings, then click "Save All Settings" first.'
+            ];
+        }
+
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host        = $config['host'];
+            $mail->SMTPAuth    = true;
+            $mail->Username    = $config['username'];
+            $mail->Password    = $config['password'];
+            $mail->Port        = $config['port'];
+            $mail->Timeout     = 12;
+
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                    'allow_self_signed' => true,
+                ],
+            ];
+
+            if ($config['encryption'] === 'ssl') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                if ($config['port'] === 587) {
+                    $mail->Port = 465;
+                }
+            } else {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            }
+
+            $fromAddress = $config['from'] ?: $config['username'];
+            $fromName    = $config['from_name'] ?: 'REGC Fleet Management';
+            $mail->setFrom($fromAddress, $fromName);
+            $mail->addAddress($toEmail);
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = 'REGC Fleet Management — SMTP Connection Test';
+            $mail->Body    = '<div style="font-family:Segoe UI,sans-serif;padding:25px;border-top:4px solid #f5c842;background:#f8fafc;color:#1e293b;border-radius:8px;">'
+                . '<h2 style="color:#0e1726;margin:0 0 10px;">REGC SMTP Test Successful! ✅</h2>'
+                . '<p style="margin:0 0 12px;font-size:15px;">Your email configuration is working correctly. Real-time cargo tracking updates will now be delivered to your clients via SMTP.</p>'
+                . '<div style="padding:12px;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;color:#475569;">'
+                . '<strong>Gateway:</strong> ' . htmlspecialchars($config['host']) . ':' . $config['port'] . ' (' . strtoupper($config['encryption']) . ')<br>'
+                . '<strong>From:</strong> ' . htmlspecialchars($fromName) . ' &lt;' . htmlspecialchars($fromAddress) . '&gt;'
+                . '</div></div>';
+            $mail->AltBody = "REGC SMTP Test Successful!\nYour email configuration is working correctly. Real-time cargo tracking updates will now be delivered to your clients.";
+
+            $mail->send();
+            return [
+                'ok' => true,
+                'message' => "✅ Test email sent successfully to {$toEmail}! Your emailer is active and verified."
+            ];
+        } catch (\Exception $e) {
+            $err = $mail->ErrorInfo ?: $e->getMessage();
+            $hint = '';
+            if (stripos($err, 'authenticate') !== false || stripos($err, 'username and password not accepted') !== false) {
+                $hint = ' 💡 Tip: If using Gmail, you MUST use a Google App Password (16 characters from myaccount.google.com/apppasswords), NOT your normal login password. Also make sure 2-Step Verification is turned ON in your Google Account.';
+            } elseif (stripos($err, 'timed out') !== false || stripos($err, 'connection refused') !== false || stripos($err, 'connect() failed') !== false) {
+                $hint = ' 💡 Tip: Connection timed out on port ' . $config['port'] . '. Try toggling between Port 587 (TLS) and Port 465 (SSL) in Settings.';
+            }
+            return [
+                'ok' => false,
+                'message' => "❌ SMTP Error: {$err}{$hint}"
             ];
         }
     }

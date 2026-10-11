@@ -11,29 +11,52 @@ function loadEnv(string $path): void
     foreach ($lines as $line) {
         $line = trim($line);
 
-        if ($line === '' || str_starts_with($line, '#')) {
+        if ($line === '' || $line[0] === '#') {
             continue;
         }
 
-        if (!str_contains($line, '=')) {
+        if (strpos($line, '=') === false) {
             continue;
         }
 
         [$name, $value] = explode('=', $line, 2);
 
-        $name = trim($name);
+        $name  = trim($name);
         $value = trim($value);
 
         if (
-            str_starts_with($value, '"') &&
-            str_ends_with($value, '"')
+            strlen($value) >= 2 &&
+            $value[0] === '"' &&
+            $value[strlen($value) - 1] === '"'
         ) {
             $value = substr($value, 1, -1);
         }
 
-        $_ENV[$name] = $value;
-        putenv("$name=$value");
+        // Always set $_ENV (reliable on all hosts including InfinityFree)
+        $_ENV[$name]    = $value;
+        $_SERVER[$name] = $value;
+        @putenv("$name=$value"); // may be disabled on some shared hosts
     }
+}
+
+/**
+ * Get an environment variable value.
+ * Checks $_ENV first (always set), then getenv() as fallback.
+ *
+ * @param string $key
+ * @param mixed  $default
+ * @return mixed
+ */
+function env(string $key, $default = null)
+{
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+        return $_ENV[$key];
+    }
+    $val = getenv($key);
+    if ($val !== false && $val !== '') {
+        return $val;
+    }
+    return $default;
 }
 
 loadEnv(dirname(__DIR__) . '/.env');

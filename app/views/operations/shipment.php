@@ -19,9 +19,9 @@ $isAdmin = hasRole('administrator');
         <?php endif; ?>
 
         <?php if ($isAdmin): ?>
-            <a class="btn btn-warning text-dark fw-bold" href="index.php?route=shipments&amp;action=email-tracking&amp;id=<?= (int) $shipment['id']; ?>" onclick="return confirm('Send tracking email with code <?= e($shipment['tracking_number']); ?> to the customer?');">
+            <button type="button" class="btn btn-warning text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#emailCustomerModal" title="Send tracking email to the customer">
                 <i class="bi bi-envelope-at-fill"></i> Email Customer
-            </a>
+            </button>
             <button type="button" class="btn btn-success text-white fw-bold" data-bs-toggle="modal" data-bs-target="#smsCustomerModal" title="Send tracking number via text message (SMS)">
                 <i class="bi bi-phone-fill"></i> SMS Customer
             </button>
@@ -76,12 +76,119 @@ $isAdmin = hasRole('administrator');
 <?php require __DIR__ . '/shipment-detail.php'; ?>
 
 <?php if ($isAdmin):
-    $customerPhone = trim($shipment['contact_number'] ?? '');
+    $customerEmail  = trim($shipment['email'] ?? '');
+    $customerPhone  = trim($shipment['contact_number'] ?? '');
     $customerPerson = $shipment['contact_person'] ?? 'Valued Customer';
-    $customerCompany = $shipment['company_name'] ?? '';
-    $trackingNum = $shipment['tracking_number'] ?? '';
-    $smsMsg = "Hi " . explode(' ', trim($customerPerson))[0] . "! Your REGC cargo (" . $trackingNum . ") is dispatched. Track live at " . (defined('APP_URL') ? APP_URL : '') . "/index.php?route=tracking&number=" . urlencode($trackingNum);
+    $customerCompany= $shipment['company_name'] ?? '';
+    $trackingNum    = $shipment['tracking_number'] ?? '';
+    $appUrl         = defined('APP_URL') && APP_URL ? APP_URL : 'http://localhost/regc-lms';
+    $trackingUrl    = $appUrl . '/index.php?route=tracking&number=' . urlencode($trackingNum);
+
+    $emailSubject   = "Your Cargo Tracking Code: {$trackingNum} — REGC Fleet Management";
+    $emailBodyText  = "Dear {$customerPerson},\n\nYour cargo shipment has been registered in our logistics dispatch system.\n\nTracking Code: {$trackingNum}\nCargo: {$shipment['cargo_type']}\nOrigin: {$shipment['pickup_location']}\nDestination: {$shipment['destination']}\n\nYou can track your cargo live 24/7 at:\n{$trackingUrl}\n\nThank you for choosing REGC Fleet Management!";
+
+    $mailtoUrl      = 'mailto:' . rawurlencode($customerEmail) . '?subject=' . rawurlencode($emailSubject) . '&body=' . rawurlencode($emailBodyText);
+    $smsMsg         = "Hi " . explode(' ', trim($customerPerson))[0] . "! Your REGC cargo (" . $trackingNum . ") is dispatched. Track live at " . $trackingUrl;
+
+    require_once __DIR__ . '/../../services/Mailer.php';
+    $smtpInfo       = Mailer::getSmtpConfig();
 ?>
+
+<!-- Email Customer Modal -->
+<div class="modal fade" id="emailCustomerModal" tabindex="-1" aria-labelledby="emailCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="emailCustomerModalLabel">
+                    <i class="bi bi-envelope-at-fill me-2"></i>Send Tracking Email to Customer
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Recipient</label>
+                    <div class="fw-bold fs-6 text-dark"><?= e($customerPerson); ?><?= $customerCompany ? ' <span class="text-muted fw-normal">(' . e($customerCompany) . ')</span>' : ''; ?></div>
+                    <div class="mt-1">
+                        <?php if ($customerEmail): ?>
+                            <span class="badge bg-light text-primary border fs-6 fw-normal">
+                                <i class="bi bi-envelope-fill text-warning me-1"></i><?= e($customerEmail); ?>
+                            </span>
+                        <?php else: ?>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                <i class="bi bi-exclamation-circle-fill me-1"></i>No email address recorded
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Tracking Number &amp; Milestone</label>
+                    <div class="p-2 bg-light border rounded d-flex justify-content-between align-items-center">
+                        <span class="font-monospace fw-bold fs-6 text-dark"><?= e($trackingNum); ?></span>
+                        <span class="badge bg-success"><?= e(ucwords(str_replace('_', ' ', $shipment['current_status']))); ?></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Email Subject &amp; Route</label>
+                    <div class="p-2 bg-light border rounded small">
+                        <div class="fw-semibold text-dark mb-1"><?= e($emailSubject); ?></div>
+                        <div class="text-muted" style="font-size:12px;">
+                            <i class="bi bi-box-seam me-1"></i><?= e($shipment['cargo_type']); ?> (<?= number_format((float) $shipment['cargo_weight_kg'], 2); ?> kg)<br>
+                            <i class="bi bi-geo-alt-fill text-danger me-1"></i><?= e($shipment['pickup_location']); ?> &rarr; <?= e($shipment['destination']); ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gateway Status Alert -->
+                <div class="mb-3">
+                    <?php if ($smtpInfo['is_configured']): ?>
+                        <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                            <div>
+                                <strong>Server SMTP Active</strong> (<?= e($smtpInfo['host']); ?>)<br>
+                                <span class="text-muted">Sends formatted HTML email directly through your server.</span>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                            <i class="bi bi-info-circle-fill fs-5 text-warning"></i>
+                            <div>
+                                <strong>Server SMTP Not Configured</strong><br>
+                                <span class="text-muted">You can open in your local email app (mailto:) or configure Gmail in <a href="index.php?route=settings" class="fw-bold">Settings</a>.</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!$customerEmail): ?>
+                    <div class="alert alert-danger py-2 small mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Please add an email address to this customer's profile to dispatch tracking emails.
+                        <a href="index.php?route=customers&amp;action=edit&amp;id=<?= (int)$shipment['customer_id']; ?>" class="fw-bold d-block mt-1">
+                            &rarr; Edit Customer Profile
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="index.php?route=shipments&amp;action=email-preview&amp;id=<?= (int) $shipment['id']; ?>" target="_blank" class="btn btn-outline-dark" title="Preview branded HTML email">
+                    <i class="bi bi-eye"></i> Preview HTML
+                </a>
+                <?php if ($customerEmail): ?>
+                    <a href="<?= e($mailtoUrl); ?>" class="btn btn-outline-warning text-dark fw-bold" title="Open in Outlook, Gmail, Apple Mail on your device">
+                        <i class="bi bi-envelope-paper-fill me-1"></i> Open in Email App
+                    </a>
+                    <a href="index.php?route=shipments&amp;action=email-tracking&amp;id=<?= (int) $shipment['id']; ?>" class="btn btn-warning text-dark fw-bold" onclick="return confirm('Send live email via server SMTP?');">
+                        <i class="bi bi-send-fill me-1"></i> Send Server Email
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- SMS Customer Modal -->
 <div class="modal fade" id="smsCustomerModal" tabindex="-1" aria-labelledby="smsCustomerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

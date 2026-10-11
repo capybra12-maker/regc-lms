@@ -282,11 +282,13 @@ switch ($route) {
         header('Content-Type: application/json; charset=utf-8');
         $rows = db()->query("
             SELECT d.id, d.full_name, d.gps_lat, d.gps_lng, d.gps_updated_at, d.status,
-                   s.tracking_number, s.current_status AS shipment_status, s.destination
+                   s.tracking_number, s.current_status AS shipment_status,
+                   s.destination, s.pickup_location,
+                   s.pickup_lat, s.pickup_lng, s.destination_lat, s.destination_lng
             FROM drivers d
             LEFT JOIN shipments s ON s.driver_id = d.id
-                AND s.current_status IN ('pickup','in_transit','arrived')
-            WHERE d.status IN ('available','assigned','on_delivery')
+                AND s.current_status IN ('assigned','pickup','in_transit','arrived')
+            WHERE d.status != 'inactive'
             ORDER BY d.full_name
         ")->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['ok' => true, 'drivers' => $rows, 'ts' => time()]);
@@ -295,41 +297,10 @@ switch ($route) {
     case 'mail-test':
         // Admin utility: sends a test email to verify SMTP configuration
         requireRole(['administrator']);
-        require_once __DIR__ . '/app/services/PHPMailer/Exception.php';
-        require_once __DIR__ . '/app/services/PHPMailer/PHPMailer.php';
-        require_once __DIR__ . '/app/services/PHPMailer/SMTP.php';
+        require_once __DIR__ . '/app/services/Mailer.php';
         $to = trim($_GET['to'] ?? (authUser()['email'] ?? ''));
         header('Content-Type: application/json; charset=utf-8');
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'message' => 'Provide a valid ?to=email@address']);
-            exit;
-        }
-        if (!defined('MAIL_HOST') || MAIL_HOST === '') {
-            echo json_encode(['ok' => false, 'message' => 'MAIL_HOST not configured in .env']);
-            exit;
-        }
-        try {
-            $testMail = new PHPMailer\PHPMailer\PHPMailer(true);
-            $testMail->isSMTP();
-            $testMail->Host       = MAIL_HOST;
-            $testMail->SMTPAuth   = true;
-            $testMail->Username   = MAIL_USERNAME;
-            $testMail->Password   = MAIL_PASSWORD;
-            $testMail->Port       = MAIL_PORT;
-            $testMail->SMTPSecure = strtolower(MAIL_ENCRYPTION) === 'ssl'
-                ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-                : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $testMail->setFrom(MAIL_FROM ?: MAIL_USERNAME, MAIL_FROM_NAME);
-            $testMail->addAddress($to);
-            $testMail->isHTML(true);
-            $testMail->Subject = 'REGC LMS — SMTP Test Email';
-            $testMail->Body    = '<h2 style="color:#0e1726">REGC SMTP Test</h2><p>If you received this, email is working correctly! ✅</p>';
-            $testMail->AltBody = 'REGC SMTP Test — If you received this, email is working!';
-            $testMail->send();
-            echo json_encode(['ok' => true, 'message' => "Test email sent successfully to {$to}"]);
-        } catch (\Exception $e) {
-            echo json_encode(['ok' => false, 'message' => 'SMTP Error: ' . $testMail->ErrorInfo]);
-        }
+        echo json_encode(Mailer::testSmtp($to));
         exit;
 
     case 'sms-test':

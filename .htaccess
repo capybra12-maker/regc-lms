@@ -2,6 +2,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Force HTTPS — required for GPS/Geolocation API on mobile browsers
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     # Direct access to existing files and directories
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d

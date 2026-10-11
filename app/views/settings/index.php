@@ -3,6 +3,8 @@ $title = 'System Settings';
 $module = 'settings';
 $modalRequest = $modalRequest ?? false;
 if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
+require_once __DIR__ . '/../../services/Mailer.php';
+$smtpConfig = Mailer::getSmtpConfig();
 ?>
 
 <div data-modal-panel data-modal-title="Company &amp; Fleet Settings">
@@ -66,6 +68,100 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
                 </div>
             </div>
 
+            <!-- Email / SMTP Delivery Gateway Configuration -->
+            <h3 class="section-title mb-3 border-top pt-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span><i class="bi bi-envelope-at-fill text-warning me-2"></i>Email / SMTP Delivery Gateway</span>
+                <?php if ($smtpConfig['is_configured']): ?>
+                    <span class="badge bg-success" style="font-size:12px;"><i class="bi bi-check-circle-fill me-1"></i>Active (SMTP)</span>
+                <?php else: ?>
+                    <span class="badge bg-warning text-dark" style="font-size:12px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Setup Needed</span>
+                <?php endif; ?>
+            </h3>
+            <p class="text-muted small mb-3">Configure SMTP credentials to automatically send tracking links to customers. Works with Gmail, Google Workspace, Outlook, or private cPanel mail servers.</p>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="mail_host">SMTP Host *</label>
+                    <input class="form-control font-monospace" type="text" id="mail_host" name="mail_host"
+                           value="<?= e($settings['mail_host'] ?? ($smtpConfig['host'] ?: 'smtp.gmail.com')); ?>"
+                           placeholder="smtp.gmail.com" required maxlength="190">
+                    <small class="text-muted">For Gmail, use <code>smtp.gmail.com</code>.</small>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="mail_port">SMTP Port *</label>
+                    <input class="form-control font-monospace" type="number" id="mail_port" name="mail_port"
+                           value="<?= e((string) ($settings['mail_port'] ?? ($smtpConfig['port'] ?: 587))); ?>"
+                           placeholder="587" required min="1" max="65535">
+                    <small class="text-muted">587 for TLS, 465 for SSL.</small>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="mail_encryption">Encryption *</label>
+                    <?php $activeEnc = strtolower($settings['mail_encryption'] ?? ($smtpConfig['encryption'] ?: 'tls')); ?>
+                    <select class="form-select" id="mail_encryption" name="mail_encryption">
+                        <option value="tls" <?= $activeEnc === 'tls' ? 'selected' : ''; ?>>TLS (STARTTLS - Port 587)</option>
+                        <option value="ssl" <?= $activeEnc === 'ssl' ? 'selected' : ''; ?>>SSL (SMTPS - Port 465)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="mail_username">SMTP Username / Email *</label>
+                    <input class="form-control" type="email" id="mail_username" name="mail_username"
+                           value="<?= e($settings['mail_username'] ?? ($smtpConfig['username'] ?: '')); ?>"
+                           placeholder="your-email@gmail.com" maxlength="190">
+                    <small class="text-muted">Your full email address used to log into SMTP.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="mail_password">
+                        SMTP Password / App Password
+                        <?php if (!empty($settings['mail_password']) || (!empty($smtpConfig['password']) && !$smtpConfig['is_configured'])): ?>
+                            <span class="badge bg-light text-dark border ms-1">Password Saved</span>
+                        <?php endif; ?>
+                    </label>
+                    <input class="form-control font-monospace" type="password" id="mail_password" name="mail_password"
+                           placeholder="<?= (!empty($settings['mail_password']) || !empty($smtpConfig['password'])) ? '•••••••••••••••• (Leave blank to keep existing)' : 'Enter 16-character App Password'; ?>"
+                           autocomplete="new-password">
+                    <small class="text-muted">For Gmail, use a <strong>16-letter Google App Password</strong>.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="mail_from">From Email Address</label>
+                    <input class="form-control" type="email" id="mail_from" name="mail_from"
+                           value="<?= e($settings['mail_from'] ?? ($smtpConfig['from'] ?: '')); ?>"
+                           placeholder="dispatch@regctrucking.com" maxlength="190">
+                    <small class="text-muted">Sender address shown to customers (usually matches your SMTP email).</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="mail_from_name">From Sender Name</label>
+                    <input class="form-control" type="text" id="mail_from_name" name="mail_from_name"
+                           value="<?= e($settings['mail_from_name'] ?? ($smtpConfig['from_name'] ?: 'REGC Fleet Management')); ?>"
+                           placeholder="REGC Fleet Management" maxlength="100">
+                </div>
+            </div>
+
+            <!-- Gmail Instructions Collapsible Card -->
+            <div class="alert alert-light border rounded-3 p-3 mb-4" style="background:#f8fafc;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <strong class="text-dark small"><i class="bi bi-google text-danger me-1"></i> How to set up Gmail in 60 seconds:</strong>
+                    <a class="badge bg-secondary text-decoration-none" data-bs-toggle="collapse" href="#gmailGuideCollapse" role="button" aria-expanded="false" aria-controls="gmailGuideCollapse">
+                        Show Instructions
+                    </a>
+                </div>
+                <div class="collapse show" id="gmailGuideCollapse">
+                    <ol class="small text-muted ps-3 mb-2" style="line-height:1.7;">
+                        <li>Enable <strong>2-Step Verification</strong> on your Google Account (<a href="https://myaccount.google.com/security" target="_blank">myaccount.google.com/security</a>).</li>
+                        <li>Go to <strong>App Passwords</strong> (<a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a>).</li>
+                        <li>Type an app name like <code>REGC LMS</code> and click <strong>Create</strong>.</li>
+                        <li>Copy the <strong>16-character password</strong> (e.g. <code>abcd efgh ijkl mnop</code>) and paste it into the <em>SMTP Password / App Password</em> field above.</li>
+                        <li>Click <strong>Save All Settings</strong> below, then test with the <em>Send Test Email</em> box on the right!</li>
+                    </ol>
+                    <small class="text-primary"><i class="bi bi-info-circle me-1"></i> Note: Google blocks regular passwords on external SMTP. You must use an App Password.</small>
+                </div>
+            </div>
+
             <div class="form-actions mt-4 pt-3 border-top">
                 <button type="submit" class="btn btn-regc">
                     <i class="bi bi-check-lg"></i> Save All Settings
@@ -84,7 +180,7 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
             <dl class="detail-grid" style="grid-template-columns: 1fr;">
                 <div>
                     <dt>Application Version</dt>
-                    <dd><span class="badge bg-light text-dark border">v<?= e($settings['app_version'] ?? '2.0.0'); ?> Commercial</span></dd>
+                    <dd><span class="badge bg-light text-dark border">v<?= e($settings['app_version'] ?? '2.1.0'); ?> Commercial</span></dd>
                 </div>
                 <div>
                     <dt>PHP Engine</dt>
@@ -108,44 +204,44 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
         <!-- Email / SMTP Configuration Status -->
         <div class="workspace-card mb-4">
             <div class="d-flex align-items-center gap-2 mb-3">
-                <i class="bi bi-envelope-at-fill fs-5 <?= (defined('MAIL_HOST') && MAIL_HOST !== '') ? 'text-success' : 'text-warning'; ?>"></i>
-                <strong class="text-dark">Email / SMTP</strong>
-                <?php if (defined('MAIL_HOST') && MAIL_HOST !== '' && defined('MAIL_USERNAME') && MAIL_USERNAME !== '' && MAIL_USERNAME !== 'your-gmail@gmail.com'): ?>
-                    <span class="badge bg-success ms-auto">Configured</span>
+                <i class="bi bi-envelope-at-fill fs-5 <?= $smtpConfig['is_configured'] ? 'text-success' : 'text-warning'; ?>"></i>
+                <strong class="text-dark">Email / SMTP Gateway</strong>
+                <?php if ($smtpConfig['is_configured']): ?>
+                    <span class="badge bg-success ms-auto">Active</span>
                 <?php else: ?>
                     <span class="badge bg-warning text-dark ms-auto">Not Configured</span>
                 <?php endif; ?>
             </div>
 
-            <?php if (defined('MAIL_HOST') && MAIL_HOST !== ''): ?>
-                <dl class="detail-grid mb-3" style="grid-template-columns: 1fr;">
-                    <div>
-                        <dt>SMTP Host</dt>
-                        <dd class="font-monospace small"><?= e(MAIL_HOST); ?>:<?= e(MAIL_PORT); ?></dd>
-                    </div>
-                    <div>
-                        <dt>Encryption</dt>
-                        <dd><?= e(strtoupper(MAIL_ENCRYPTION)); ?></dd>
-                    </div>
-                    <div>
-                        <dt>From Address</dt>
-                        <dd class="small"><?= e(MAIL_FROM ?: MAIL_USERNAME); ?></dd>
-                    </div>
-                </dl>
-
-                <!-- Test Email Panel -->
-                <div class="border-top pt-3">
-                    <label class="form-label small fw-bold text-muted">Send Test Email</label>
-                    <div class="input-group input-group-sm">
-                        <input type="email" class="form-control" id="test-email-to"
-                               placeholder="recipient@email.com"
-                               value="<?= e(authUser()['email'] ?? ''); ?>">
-                        <button class="btn btn-outline-primary btn-sm" type="button" id="btn-send-test-email">
-                            <i class="bi bi-send me-1"></i>Send
-                        </button>
-                    </div>
-                    <div id="test-email-result" class="mt-2 small d-none"></div>
+            <dl class="detail-grid mb-3" style="grid-template-columns: 1fr;">
+                <div>
+                    <dt>SMTP Host</dt>
+                    <dd class="font-monospace small"><?= e($smtpConfig['host']); ?>:<?= e((string)$smtpConfig['port']); ?></dd>
                 </div>
+                <div>
+                    <dt>Encryption</dt>
+                    <dd><?= e(strtoupper($smtpConfig['encryption'])); ?></dd>
+                </div>
+                <div>
+                    <dt>From Address</dt>
+                    <dd class="small"><?= e($smtpConfig['from'] ?: ($smtpConfig['username'] ?: 'Not set')); ?></dd>
+                </div>
+            </dl>
+
+            <!-- Test Email Panel -->
+            <div class="border-top pt-3">
+                <label class="form-label small fw-bold text-muted">Send Test Email</label>
+                <div class="input-group input-group-sm">
+                    <input type="email" class="form-control" id="test-email-to"
+                           placeholder="recipient@email.com"
+                           value="<?= e(authUser()['email'] ?? ''); ?>">
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="btn-send-test-email">
+                        <i class="bi bi-send me-1"></i>Send
+                    </button>
+                </div>
+                <small class="text-muted" style="font-size:11px;">Sends a verification email to test SMTP settings.</small>
+                <div id="test-email-result" class="mt-2 small d-none"></div>
+            </div>
 
                 <script>
                 document.getElementById('btn-send-test-email').addEventListener('click', function() {
@@ -174,21 +270,6 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
                         });
                 });
                 </script>
-            <?php else: ?>
-                <p class="text-muted small mb-3">Email delivery is disabled. Add your SMTP credentials to the <code>.env</code> file to enable real email sending.</p>
-                <div class="bg-light rounded-2 p-3 border small font-monospace" style="font-size: 11px; line-height: 1.8;">
-                    <div class="text-muted">Add to <strong>.env</strong>:</div>
-                    MAIL_HOST=smtp.gmail.com<br>
-                    MAIL_PORT=587<br>
-                    MAIL_ENCRYPTION=tls<br>
-                    MAIL_USERNAME=you@gmail.com<br>
-                    MAIL_PASSWORD=your-app-password<br>
-                    MAIL_FROM=you@gmail.com
-                </div>
-                <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-outline-secondary btn-sm mt-3 w-100">
-                    <i class="bi bi-google me-1"></i> Get Gmail App Password
-                </a>
-            <?php endif; ?>
         </div>
 
 
