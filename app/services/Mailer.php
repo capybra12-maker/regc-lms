@@ -398,7 +398,7 @@ class Mailer
                     <tr>
                         <td style="background-color:#080d16; padding: 24px 35px; text-align: center; color: #94a3b8; font-size: 12px; line-height: 1.6;">
                             <strong style="color:#ffffff;">REGC Fleet Management & Shipment Tracking</strong><br>
-                            Makar Wharf / Port Road, General Santos City, Philippines<br>
+                            Tagoloan, Misamis Oriental, Philippines<br>
                             Dispatch Helpline: (083) 552-0000 &middot; Email: dispatch@regctrucking.com<br>
                             <span style="font-size:11px; opacity:0.7;">This is an automated delivery notification. Please do not reply directly to this email.</span>
                         </td>

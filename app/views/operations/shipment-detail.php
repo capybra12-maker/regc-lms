@@ -80,9 +80,9 @@ $podDoc = Proof::forShipment((int) $shipment['id']);
         var destName = <?= json_encode($shipment['destination']); ?>;
         var driverName = <?= json_encode($shipment['driver_name'] ?? 'Driver'); ?>;
 
-        // Default to General Santos City / Southern Mindanao
-        var centerLat = gLat || pLat || dLat || 6.1164;
-        var centerLng = gLng || pLng || dLng || 125.1716;
+        // Default to Tagoloan, Misamis Oriental
+        var centerLat = gLat || pLat || dLat || 8.5333;
+        var centerLng = gLng || pLng || dLng || 124.7333;
 
         var sMap = L.map('shipment-live-map').setView([centerLat, centerLng], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

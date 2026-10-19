@@ -485,7 +485,7 @@ $appName = APP_NAME ?? 'REGC Fleet Management & Shipment Tracking';
                         <img src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=700&q=80" alt="Sea container loading onto truck" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
                         <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; background: linear-gradient(transparent, rgba(14,23,38,0.92)); color: #fff;">
                             <strong class="d-block fs-6">Pier Offloading &amp; Direct Transfer</strong>
-                            <small class="opacity-75">Port of General Santos &middot; Makar Wharf</small>
+                            <small class="opacity-75">Port Area &middot; Tagoloan, Misamis Oriental</small>
                         </div>
                     </div>
                     <div class="row g-3">
@@ -696,10 +696,10 @@ $appName = APP_NAME ?? 'REGC Fleet Management & Shipment Tracking';
 
         <div class="photo-showcase-grid reveal">
             <div class="showcase-item col-span-2 row-span-2">
-                <img src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=900&q=80" alt="Port of General Santos Makar Wharf" loading="lazy">
+                <img src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=900&q=80" alt="Tagoloan Port Misamis Oriental" loading="lazy">
                 <div class="showcase-overlay">
                     <span class="badge bg-warning text-dark align-self-start mb-2">Primary Hub</span>
-                    <h4 class="fw-bold mb-1">Makar Wharf &amp; Seaport Discharging</h4>
+                    <h4 class="fw-bold mb-1">Tagoloan Port &amp; Seaport Discharging</h4>
                     <p class="small text-secondary mb-0">Direct berth access for bulk grain vessels, international container ships, and inter-island barges.</p>
                 </div>
             </div>
@@ -849,7 +849,7 @@ $appName = APP_NAME ?? 'REGC Fleet Management & Shipment Tracking';
             <div class="col-lg-4 col-sm-6 reveal reveal-delay-2">
                 <h6 class="text-uppercase fw-bold text-warning mb-3" style="letter-spacing:0.1em; font-size:12px;">Contact Information</h6>
                 <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
-                    <li><i class="bi bi-geo-alt text-warning me-2"></i> Makar Wharf / Port Road, General Santos City, PH</li>
+                    <li><i class="bi bi-geo-alt text-warning me-2"></i> Tagoloan, Misamis Oriental, PH</li>
                     <li><i class="bi bi-telephone text-warning me-2"></i> (083) 552-0000 / +63 917-000-0000</li>
                     <li><i class="bi bi-envelope text-warning me-2"></i> dispatch@regctrucking.com</li>
                     <li><i class="bi bi-clock text-warning me-2"></i> Dispatch Operations: 24/7 Mon - Sat</li>

@@ -138,9 +138,9 @@ X-API-Key: regc-gps-live
     var markers = {};
     var polylines = [];
 
-    // Initialize Map with Philippines/Mindanao default center (General Santos City)
-    var defaultLat = 6.1164;
-    var defaultLng = 125.1716;
+    // Initialize Map with Philippines/Mindanao default center (Tagoloan, Misamis Oriental)
+    var defaultLat = 8.5333;
+    var defaultLng = 124.7333;
 
     map = L.map('fleet-map').setView([defaultLat, defaultLng], 11);
 

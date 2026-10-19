@@ -268,7 +268,7 @@ INSERT IGNORE INTO users (id, full_name, email, password, role, status) VALUES
 -- ------------------------------------------------------------
 INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 ('company_name',       'REGC Fleet Management & Shipment Tracking'),
-('company_address',    'General Santos City, South Cotabato, Philippines'),
+('company_address',    'Tagoloan, Misamis Oriental, Philippines'),
 ('company_phone',      '+63 (083) 552-0000'),
 ('company_email',      'dispatch@regctrucking.com'),
 ('company_tagline',    'Track. Deliver. Manage. Efficiently.'),

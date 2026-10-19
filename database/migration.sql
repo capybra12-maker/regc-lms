@@ -67,7 +67,7 @@ ALTER TABLE proof_of_delivery
 -- Default settings
 INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 ('company_name',        'REGC Trucking Services'),
-('company_address',     'General Santos City, South Cotabato, Philippines'),
+('company_address',     'Tagoloan, Misamis Oriental, Philippines'),
 ('company_phone',       '+63 (083) 000-0000'),
 ('company_email',       'info@regctrucking.com'),
 ('company_tagline',     'Track. Deliver. Manage. Efficiently.'),

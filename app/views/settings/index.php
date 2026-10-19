@@ -47,7 +47,7 @@ $smtpConfig = Mailer::getSmtpConfig();
 
                 <div class="col-12">
                     <label class="form-label" for="company_address">Depot &amp; Office Address</label>
-                    <textarea class="form-control" id="company_address" name="company_address" rows="2" maxlength="500"><?= e($settings['company_address'] ?? 'General Santos City, South Cotabato, Philippines'); ?></textarea>
+                    <textarea class="form-control" id="company_address" name="company_address" rows="2" maxlength="500"><?= e($settings['company_address'] ?? 'Tagoloan, Misamis Oriental, Philippines'); ?></textarea>
                 </div>
             </div>
 
