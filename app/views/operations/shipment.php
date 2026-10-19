@@ -52,7 +52,7 @@ $isAdmin = hasRole('administrator');
     </div>
 <?php elseif ($shipment['current_status'] !== 'delivered'):
     $next = Operations::STATUSES[array_search($shipment['current_status'], Operations::STATUSES, true) + 1] ?? null;
-    if ($next): ?>
+    if ($next && $isAdmin): ?>
     <div class="workspace-card status-update mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="flex-grow-1">
             <strong class="fs-6 text-dark d-block">Advance Delivery Milestone</strong>

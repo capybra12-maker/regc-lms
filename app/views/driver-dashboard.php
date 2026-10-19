@@ -103,10 +103,6 @@ require __DIR__ . '/partials/header.php';
                         <a href="index.php?route=proof-form&amp;shipment_id=<?= (int) $job['id']; ?>" class="btn btn-regc btn-sm" data-modal-link>
                             <i class="bi bi-upload"></i> Upload POD &amp; Complete
                         </a>
-                    <?php elseif ($next): ?>
-                        <a href="index.php?route=shipments&amp;action=status-form&amp;id=<?= (int) $job['id']; ?>" class="btn btn-regc btn-sm" data-modal-link>
-                            <i class="bi bi-arrow-right-circle"></i> Advance to <?= e(ucwords(str_replace('_', ' ', $next))); ?>
-                        </a>
                     <?php endif; ?>
                 </div>
             </div>
