@@ -337,6 +337,14 @@ document.addEventListener("DOMContentLoaded", () => {
             bindCapacity(content);
             bindDieselCalc(content);
             bindFileUploads(content);
+
+            // Execute scripts inside dynamically loaded panel
+            content.querySelectorAll('script').forEach(s => {
+                const runner = document.createElement('script');
+                runner.textContent = s.textContent;
+                document.body.appendChild(runner);
+                runner.remove();
+            });
             const invalid = content.querySelector('[role="alert"]');
             if (invalid) {
                 invalid.tabIndex = -1;
