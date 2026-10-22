@@ -126,6 +126,84 @@ document.addEventListener("DOMContentLoaded", () => {
     bindDieselCalc(document);
 
     // ------------------------------------------------------------
+    // 5b. Client-Side Image Compression & Base64 Encoder
+    // ------------------------------------------------------------
+    async function fileToDataUrl(file) {
+        if (!file) return '';
+        if (file.type === 'application/pdf') {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxDim = 1600;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.82));
+                };
+                img.onerror = () => resolve(e.target.result);
+                img.src = e.target.result;
+            };
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function bindFileUploads(root) {
+        const fileInputs = root.querySelectorAll('input[type="file"][data-base64-target]');
+        fileInputs.forEach(input => {
+            const targetId = input.dataset.base64Target;
+            const hiddenInput = root.querySelector('#' + targetId) || document.getElementById(targetId);
+            if (!hiddenInput) return;
+
+            input.addEventListener('change', async () => {
+                const file = input.files[0];
+                if (!file) {
+                    hiddenInput.value = '';
+                    return;
+                }
+                const smallHint = input.parentElement.querySelector('.form-text');
+                const origHint = smallHint ? smallHint.textContent : '';
+                if (smallHint) {
+                    smallHint.innerHTML = '<span class="text-primary"><span class="spinner-border spinner-border-sm me-1" style="width:12px;height:12px;"></span> Optimizing photo…</span>';
+                }
+                try {
+                    const dataUrl = await fileToDataUrl(file);
+                    hiddenInput.value = dataUrl;
+                    if (smallHint) {
+                        const kb = Math.round((dataUrl.length * 0.75) / 1024);
+                        smallHint.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Ready (${kb} KB)</span>`;
+                    }
+                } catch (err) {
+                    if (smallHint) smallHint.textContent = origHint;
+                }
+            });
+        });
+    }
+    bindFileUploads(document);
+
+    // ------------------------------------------------------------
     // 6. Toast Notification Engine
     // ------------------------------------------------------------
     let toastContainer = document.getElementById('toast-container');
@@ -258,6 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
             content.replaceChildren(document.importNode(panel, true));
             bindCapacity(content);
             bindDieselCalc(content);
+            bindFileUploads(content);
             const invalid = content.querySelector('[role="alert"]');
             if (invalid) {
                 invalid.tabIndex = -1;
@@ -420,7 +499,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (saving || !form.reportValidity()) return;
 
         clearError();
-        const payload = new FormData(form);
+
+        // Process any pending file inputs that haven't finished converting to base64 yet
+        const pendingFiles = form.querySelectorAll('input[type="file"][data-base64-target]');
+        for (const input of pendingFiles) {
+            const targetId = input.dataset.base64Target;
+            const hidden = form.querySelector('#' + targetId) || document.getElementById(targetId);
+            if (hidden && !hidden.value && input.files[0]) {
+                hidden.value = await fileToDataUrl(input.files[0]);
+            }
+        }
+
         setSaving(true);
         const submit = form.querySelector('button[type="submit"]');
         const originalLabel = submit?.innerHTML;
@@ -429,12 +518,33 @@ document.addEventListener("DOMContentLoaded", () => {
         let completed = false;
         const formAction = form.getAttribute('action') || window.location.href;
         const formMethod = (form.getAttribute('method') || 'POST').toUpperCase();
+
+        // Use URLSearchParams when base64 file inputs are present to send application/x-www-form-urlencoded.
+        // This avoids OpenResty 403 Forbidden firewall blocks on multipart/form-data.
+        let bodyPayload;
+        const headers = { 'X-Requested-With': 'REGC-Modal' };
+        const hasBase64 = form.querySelectorAll('input[type="hidden"][name$="_base64"]').length > 0;
+
+        if (hasBase64) {
+            const params = new URLSearchParams();
+            const formData = new FormData(form);
+            for (const [key, value] of formData.entries()) {
+                if (!(value instanceof File)) {
+                    params.append(key, value);
+                }
+            }
+            bodyPayload = params;
+            headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+        } else {
+            bodyPayload = new FormData(form);
+        }
+
         try {
             const response = await fetch(formAction, {
                 method: formMethod,
-                body: payload,
+                body: bodyPayload,
                 credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'REGC-Modal' }
+                headers: headers
             });
             const result = await readResponse(response);
             if (response.ok && result.json?.redirect) {

@@ -21,9 +21,12 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
     <div class="alert alert-danger mb-4" role="alert"><?= e($error); ?></div>
 <?php endif; ?>
 
-<form method="post" action="index.php?route=proof-upload" class="<?= $modalRequest ? '' : 'workspace-card '; ?>edit-form" enctype="multipart/form-data" data-modal-form>
+<form method="post" action="index.php?route=proof-upload" class="<?= $modalRequest ? '' : 'workspace-card '; ?>edit-form" data-modal-form>
     <?= csrfField(); ?>
     <input type="hidden" name="shipment_id" value="<?= (int) $shipment['id']; ?>">
+    <input type="hidden" name="proof_image_base64" id="proof_image_base64">
+    <input type="hidden" name="delivery_receipt_base64" id="delivery_receipt_base64">
+    <input type="hidden" name="signature_file_base64" id="signature_file_base64">
 
     <div class="row g-3">
         <div class="col-md-6">
@@ -33,19 +36,19 @@ if (!$modalRequest) { require __DIR__ . '/../partials/header.php'; }
 
         <div class="col-md-6">
             <label class="form-label" for="proof_image">Cargo Photo / Delivery Photo</label>
-            <input class="form-control" type="file" id="proof_image" name="proof_image" accept="image/*,.pdf">
-            <small class="form-text text-muted">Accepts JPG, PNG, WEBP, or PDF (max 10MB)</small>
+            <input class="form-control" type="file" id="proof_image" accept="image/*,.pdf" data-base64-target="proof_image_base64">
+            <small class="form-text text-muted">Accepts JPG, PNG, WEBP, or PDF</small>
         </div>
 
         <div class="col-md-6">
             <label class="form-label" for="delivery_receipt">Signed Delivery Receipt (DR)</label>
-            <input class="form-control" type="file" id="delivery_receipt" name="delivery_receipt" accept="image/*,.pdf">
+            <input class="form-control" type="file" id="delivery_receipt" accept="image/*,.pdf" data-base64-target="delivery_receipt_base64">
             <small class="form-text text-muted">Scan or photo of signed physical paper DR</small>
         </div>
 
         <div class="col-md-6">
             <label class="form-label" for="signature_file">Recipient Signature Image (Optional)</label>
-            <input class="form-control" type="file" id="signature_file" name="signature_file" accept="image/*">
+            <input class="form-control" type="file" id="signature_file" accept="image/*" data-base64-target="signature_file_base64">
             <small class="form-text text-muted">Digital signature capture or photo</small>
         </div>
 

@@ -34,10 +34,38 @@ class Proof
         }
 
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+        $fields = ['proof_image', 'delivery_receipt', 'signature_file'];
 
+        // 1. Process Base64 encoded uploads (bypasses OpenResty / WAF multipart blocks on shared hosting)
+        foreach ($fields as $field) {
+            $base64Key = $field . '_base64';
+            if (!empty($data[$base64Key]) && is_string($data[$base64Key])) {
+                $raw = trim($data[$base64Key]);
+                if (preg_match('/^data:(image\/(jpeg|jpg|png|webp)|application\/pdf);base64,(.+)$/is', $raw, $matches)) {
+                    $mime = strtolower($matches[1]);
+                    $ext = match ($mime) {
+                        'image/jpeg', 'image/jpg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/webp' => 'webp',
+                        'application/pdf' => 'pdf',
+                        default => 'jpg'
+                    };
+                    $binary = base64_decode($matches[3], true);
+                    if ($binary !== false && strlen($binary) > 0) {
+                        $filename = 'pod_' . $shipmentId . '_' . $field . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                        $targetPath = $uploadDir . '/' . $filename;
+                        if (file_put_contents($targetPath, $binary) !== false) {
+                            $$field = $filename;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback to standard $_FILES if available
         if ($files) {
-            foreach (['proof_image', 'delivery_receipt', 'signature_file'] as $field) {
-                if (!empty($files[$field]['tmp_name']) && is_uploaded_file($files[$field]['tmp_name'])) {
+            foreach ($fields as $field) {
+                if (empty($$field) && !empty($files[$field]['tmp_name']) && is_uploaded_file($files[$field]['tmp_name'])) {
                     $ext = strtolower(pathinfo($files[$field]['name'], PATHINFO_EXTENSION));
                     if (!in_array($ext, $allowedExtensions, true)) {
                         throw new DomainException("Invalid file type for {$field}. Only JPG, PNG, WEBP, and PDF files are permitted.");
