@@ -527,25 +527,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const formAction = form.getAttribute('action') || window.location.href;
         const formMethod = (form.getAttribute('method') || 'POST').toUpperCase();
 
-        // Use URLSearchParams when base64 file inputs are present to send application/x-www-form-urlencoded.
-        // This avoids OpenResty 403 Forbidden firewall blocks on multipart/form-data.
-        let bodyPayload;
-        const headers = { 'X-Requested-With': 'REGC-Modal' };
-        const hasBase64 = form.querySelectorAll('input[type="hidden"][name$="_base64"]').length > 0;
-
-        if (hasBase64) {
-            const params = new URLSearchParams();
-            const formData = new FormData(form);
-            for (const [key, value] of formData.entries()) {
-                if (!(value instanceof File)) {
-                    params.append(key, value);
-                }
+        // Always use URLSearchParams (application/x-www-form-urlencoded) for modal form submissions.
+        // InfinityFree / OpenResty firewalls block ALL multipart/form-data POST requests with 403 Forbidden.
+        const headers = { 'X-Requested-With': 'REGC-Modal', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+        const params = new URLSearchParams();
+        const formData = new FormData(form);
+        for (const [key, value] of formData.entries()) {
+            if (!(value instanceof File)) {
+                params.append(key, value);
             }
-            bodyPayload = params;
-            headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-        } else {
-            bodyPayload = new FormData(form);
         }
+        const bodyPayload = params;
 
         try {
             const response = await fetch(formAction, {
